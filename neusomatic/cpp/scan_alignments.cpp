@@ -1,9 +1,9 @@
-/** 
+/**
   * File Name :
   * Purpose :
   * Creation Date : 28-08-2017
   * Last Modified :
-  * Created By : Mohammad Sahraeian  
+  * Created By : Mohammad Sahraeian
   */
 
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   float ins_min_af=min_af;
   float del_min_af=min_af;
   float snp_min_af=min_af;
-  const bool calculate_qual_stat = opts.calculate_qual_stat(); 
+  const bool calculate_qual_stat = opts.calculate_qual_stat();
 
   //const std::map<char, int> empty_pileup_counts = {{'-', 0}, {'A', 0}, {'C', 0}, {'G', 0}, {'T', 0}};
   static const std::vector<char> nuc_code_char = {'A', 'C', 'G', 'T', '-', 'N'};
@@ -75,14 +75,14 @@ int main(int argc, char **argv) {
   const unsigned contig_counts = seqan::length(seqan::contigNames(vcf_writer.vcf_context()));
   std::map<std::string, unsigned> chr_name_to_idx;
   for (unsigned i = 0; i < contig_counts; ++i) {
-    chr_name_to_idx[seqan::toCString(seqan::contigNames(vcf_writer.vcf_context())[i])] = i; 
+    chr_name_to_idx[seqan::toCString(seqan::contigNames(vcf_writer.vcf_context())[i])] = i;
   }
   std::ofstream count_out_writer;
   count_out_writer.open(count_out);
 
   neusomatic::CaptureLayout<GInvInt, SeqLib::BamRecord, SeqLib::BamReader> capture_layout(bam_path, bed_regions, opts);
-  SeqLib::BamHeader bam_header = capture_layout.Reader().Header(); 
-  
+  SeqLib::BamHeader bam_header = capture_layout.Reader().Header();
+
   try {
     for (auto it = chr_name_to_idx.cbegin(); it != chr_name_to_idx.cend(); ++it) {
       if (bam_header.Name2ID(it->first) != it->second) {
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
         std::cerr<<"#Aligned read number: "<<records.size()<<std::endl;
       }
       ++cnt_region;
-      if (records.empty()) continue; 
+      if (records.empty()) continue;
       if (records.size() > opts.max_depth()) {
         records.resize(opts.max_depth());
       }
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
         if (ref_base!='-'){
           start_pos++;
         }
-        if (calculate_qual_stat){ 
+        if (calculate_qual_stat){
           for(auto it = cols_lsc[i].lsc_mean.cbegin(); it != cols_lsc[i].lsc_mean.cend(); ++it) {
             rsc_counts+=*it;
           }
@@ -197,7 +197,10 @@ int main(int argc, char **argv) {
           << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 1)<<"\t" \
           << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 2)<<"\t" \
           << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 3)<<"\t" \
-          << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 4) \
+          << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 4)<<"\t" \
+          << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 5)<<"\t" \
+          << neusomatic::add_qual_col(cols_lsc[i].rcscore_max)<<"\t" \
+          << neusomatic::add_qual_col(cols_rsc[i].rcscore_sum) \
           << std::endl;
         }else{
           count_out_writer<<bam_header.IDtoName(ginv.contig())<<"\t"<<start_pos<<"\t" \
@@ -241,7 +244,7 @@ int main(int argc, char **argv) {
           }
         }
         auto ref_count = cols[i].base_freq_[ref_code];
-        auto var_code = ref_code; 
+        auto var_code = ref_code;
         int var_count = 0;
         auto af = minor_count/float(major_count+minor_count);
         if (major != ref_code){
@@ -254,7 +257,7 @@ int main(int argc, char **argv) {
           var_count = minor_count;
         }
 
-        if (var_count > 0) { 
+        if (var_count > 0) {
 
           auto record_info = "AF="+std::to_string((var_count)/float(var_count+ref_count))+";DP="+std::to_string(nrow)+";RO="+std::to_string(ref_count)+";AO="+std::to_string(var_count);
           auto gtinfo = "0/1:"+std::to_string(nrow)+":"+std::to_string(ref_count)+":"+std::to_string(var_count);
@@ -282,7 +285,7 @@ int main(int argc, char **argv) {
                       std::to_string(int(round(cols_mqual[i].mqual_mean[var_code])))+":"+\
                       std::to_string(int(round(cols[i].bqual_mean[var_code])));
           }
-          auto var_base = nuc_code_char[var_code];  
+          auto var_base = nuc_code_char[var_code];
           if (ref_base == '-') {ref_base = 'N';}
           if (var_base == '-') {var_base = 'N';}
           auto var_ref_pos=ginv.left() + cc.UngapPos(i);

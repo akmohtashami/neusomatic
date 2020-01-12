@@ -62,7 +62,9 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
     st_matrix_ = []
     lsc_matrix_ = []
     rsc_matrix_ = []
-    tag_matrices_ = [[], [], [], [], []]
+    tag_matrices_ = [[], [], [], [], [], []]
+    rcsum_matrix_ = []
+    rcmax_matrix_ = []
     ref_array = []
     col_pos_map = {}
     cnt = 0
@@ -91,6 +93,8 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
                 rsc_matrix_.append([0, 0, 0, 0, 0])
                 for iii in range(len(tag_matrices_)):
                     tag_matrices_[iii].append([0, 0, 0, 0, 0])
+                rcsum_matrix_.append([0, 0, 0, 0, 0])
+                rcmax_matrix_.append([0, 0, 0, 0, 0])
                 ref_array.append(NUC_to_NUM_tabix[ref_base_])
                 # if ref_base_ != "-" and i not in col_pos_map:
                 if i not in col_pos_map:
@@ -110,6 +114,8 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
             rsc_matrix_.append([0, 0, 0, 0, 0])
             for iii in range(len(tag_matrices_)):
                 tag_matrices_[iii].append([0, 0, 0, 0, 0])
+            rcsum_matrix_.append([0, 0, 0, 0, 0])
+            rcmax_matrix_.append([0, 0, 0, 0, 0])
             ref_array.append(NUC_to_NUM_tabix[ref_base_])
             # if ref_base_ != "-" and pos_ not in col_pos_map:
             if pos_ not in col_pos_map:
@@ -124,6 +130,8 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
         rsc_matrix_.append(list(map(int, rec[9].split(":"))))
         for iii in range(len(tag_matrices_)):
             tag_matrices_[iii].append(list(map(int, rec[10 + iii].split(":"))))
+        rcsum_matrix_.append(list(map(int, rec[10 + len(tag_matrices_) ].split(":"))))
+        rcmax_matrix_.append(list(map(lambda x: int(x) / 100.0, rec[10 + len(tag_matrices_) + 1 ].split(":"))))
         ref_array.append(NUC_to_NUM_tabix[ref_base])
         if ref_base != "-" and pos_ not in col_pos_map:
             col_pos_map[pos_] = cnt
@@ -164,7 +172,7 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
         tag_matrices_[iii] = np.array(tag_matrices_[iii]).transpose()
 
     ref_array = np.array(ref_array)
-    return matrix_, bq_matrix_, mq_matrix_, st_matrix_, lsc_matrix_, rsc_matrix_, tag_matrices_, ref_array, col_pos_map
+    return matrix_, bq_matrix_, mq_matrix_, st_matrix_, lsc_matrix_, rsc_matrix_, tag_matrices_, ref_array, col_pos_map, rcsum_matrix_, rcmax_matrix_
 
 
 def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumor_matrix_, st_tumor_matrix_,
@@ -172,7 +180,9 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
                                 tag_tumor_matrices_, tumor_ref_array, tumor_col_pos_map, normal_matrix_,
                                 bq_normal_matrix_, mq_normal_matrix_, st_normal_matrix_,
                                 lsc_normal_matrix_, rsc_normal_matrix_, tag_normal_matrices_,
-                                normal_ref_array, normal_col_pos_map):
+                                normal_ref_array, normal_col_pos_map,
+                                rcsum_tumor_matrix_, rcmax_tumor_matrix_,
+                                rcsum_normal_matrix_, rcmax_normal_matrix_):
     logger = logging.getLogger(align_tumor_normal_matrices.__name__)
     if not tumor_col_pos_map:
         logger.error("record: {}".format(record))
@@ -226,6 +236,8 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
     new_st_tumor_matrix_ = np.zeros((5, current_col_T - 1))
     new_lsc_tumor_matrix_ = np.zeros((5, current_col_T - 1))
     new_rsc_tumor_matrix_ = np.zeros((5, current_col_T - 1))
+    new_rcsum_tumor_matrix_ = np.zeros((5, current_col_T - 1))
+    new_rcmax_tumor_matrix_ = np.zeros((5, current_col_T - 1))
     new_tag_tumor_matrices_ = [
         np.zeros((5, current_col_T - 1)) for i in range(len(tag_tumor_matrices_))]
     new_tumor_matrix_[0, :] = max(tumor_matrix_.sum(0))
@@ -242,6 +254,8 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
     new_st_normal_matrix_ = np.zeros((5, current_col_T - 1))
     new_lsc_normal_matrix_ = np.zeros((5, current_col_T - 1))
     new_rsc_normal_matrix_ = np.zeros((5, current_col_T - 1))
+    new_rcsum_normal_matrix_ = np.zeros((5, current_col_T - 1))
+    new_rcmax_normal_matrix_ = np.zeros((5, current_col_T - 1))
     new_tag_normal_matrices_ = [
         np.zeros((5, current_col_T - 1)) for i in range(len(tag_normal_matrices_))]
     new_normal_matrix_[0, :] = max(normal_matrix_.sum(0))
@@ -260,6 +274,8 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
     new_st_tumor_matrix_[:, map_T] = st_tumor_matrix_
     new_lsc_tumor_matrix_[:, map_T] = lsc_tumor_matrix_
     new_rsc_tumor_matrix_[:, map_T] = rsc_tumor_matrix_
+    new_rcsum_tumor_matrix_[:, map_T] = rcsum_tumor_matrix_
+    new_rcmax_tumor_matrix_[:, map_T] = rcmax_tumor_matrix_
     for iii in range(len(tag_tumor_matrices_)):
         new_tag_tumor_matrices_[iii][:, map_T] = tag_tumor_matrices_[iii]
     new_normal_matrix_[:, map_N] = normal_matrix_
@@ -268,6 +284,8 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
     new_st_normal_matrix_[:, map_N] = st_normal_matrix_
     new_lsc_normal_matrix_[:, map_N] = lsc_normal_matrix_
     new_rsc_normal_matrix_[:, map_N] = rsc_normal_matrix_
+    new_rcsum_normal_matrix_[:, map_N] = rcsum_normal_matrix_
+    new_rcmax_normal_matrix_[:, map_N] = rcmax_normal_matrix_
     for iii in range(len(tag_normal_matrices_)):
         new_tag_normal_matrices_[iii][:, map_N] = tag_normal_matrices_[iii]
 
@@ -296,7 +314,8 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
             new_bq_normal_matrix_, new_mq_normal_matrix_, new_st_normal_matrix_,
             new_lsc_normal_matrix_, new_rsc_normal_matrix_,
             new_tag_normal_matrices_, new_tumor_ref_array,
-            new_tumor_col_pos_map]
+            new_tumor_col_pos_map, new_rcsum_tumor_matrix_, new_rcmax_tumor_matrix_,
+            new_rcsum_normal_matrix_, new_rcmax_normal_matrix_]
 
 
 def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, record, rlen, rcenter,
@@ -305,9 +324,9 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
 
     chrom, pos, ref, alt = record[0:4]
 
-    tumor_matrix_, bq_tumor_matrix_, mq_tumor_matrix_, st_tumor_matrix_, lsc_tumor_matrix_, rsc_tumor_matrix_, tag_tumor_matrices_, tumor_ref_array, tumor_col_pos_map = get_variant_matrix_tabix(
+    tumor_matrix_, bq_tumor_matrix_, mq_tumor_matrix_, st_tumor_matrix_, lsc_tumor_matrix_, rsc_tumor_matrix_, tag_tumor_matrices_, tumor_ref_array, tumor_col_pos_map, rcsum_tumor_matrix_, rcmax_tumor_matrix_ = get_variant_matrix_tabix(
         ref_file, tumor_count_bed, record, matrix_base_pad, chrom_lengths)
-    normal_matrix_, bq_normal_matrix_, mq_normal_matrix_, st_normal_matrix_, lsc_normal_matrix_, rsc_normal_matrix_, tag_normal_matrices_, normal_ref_array, normal_col_pos_map = get_variant_matrix_tabix(
+    normal_matrix_, bq_normal_matrix_, mq_normal_matrix_, st_normal_matrix_, lsc_normal_matrix_, rsc_normal_matrix_, tag_normal_matrices_, normal_ref_array, normal_col_pos_map, rcsum_normal_matrix_, rcmax_normal_matrix_ = get_variant_matrix_tabix(
         ref_file, normal_count_bed, record, matrix_base_pad, chrom_lengths)
 
     if not tumor_col_pos_map:
@@ -340,6 +359,14 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
     for iii in range(len(tag_normal_matrices_)):
         tag_normal_matrices_[iii][0, np.where(normal_matrix_.sum(0) == 0)[
             0]] = np.max(tag_normal_matrices_[iii])
+    rcsum_tumor_matrix_[0, np.where(tumor_matrix_.sum(0) == 0)[
+        0]] = np.max(rcsum_tumor_matrix_)
+    rcsum_normal_matrix_[0, np.where(normal_matrix_.sum(0) == 0)[
+        0]] = np.max(rcsum_normal_matrix_)
+    rcmax_tumor_matrix_[0, np.where(tumor_matrix_.sum(0) == 0)[
+        0]] = np.max(rcmax_tumor_matrix_)
+    rcmax_normal_matrix_[0, np.where(normal_matrix_.sum(0) == 0)[
+        0]] = np.max(rcmax_normal_matrix_)
 
     tumor_matrix_[0, np.where(tumor_matrix_.sum(0) == 0)[
         0]] = max(np.sum(tumor_matrix_, 0))
@@ -358,11 +385,13 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
     tumor_matrix_, bq_tumor_matrix_, mq_tumor_matrix_, st_tumor_matrix_, lsc_tumor_matrix_, rsc_tumor_matrix_, \
         tag_tumor_matrices_, normal_matrix_, bq_normal_matrix_, mq_normal_matrix_, st_normal_matrix_, \
         lsc_normal_matrix_, rsc_normal_matrix_, tag_normal_matrices_, \
-        ref_array, col_pos_map = align_tumor_normal_matrices(
+        ref_array, col_pos_map, rcsum_tumor_matrix_, rcmax_tumor_matrix_, \
+        rcsum_normal_matrix_, rcmax_normal_matrix_ = align_tumor_normal_matrices(
             record, tumor_matrix_, bq_tumor_matrix_, mq_tumor_matrix_, st_tumor_matrix_, lsc_tumor_matrix_, rsc_tumor_matrix_,
             tag_tumor_matrices_, tumor_ref_array, tumor_col_pos_map, normal_matrix_,
             bq_normal_matrix_, mq_normal_matrix_, st_normal_matrix_, lsc_normal_matrix_, rsc_normal_matrix_, tag_normal_matrices_,
-            normal_ref_array, normal_col_pos_map)
+            normal_ref_array, normal_col_pos_map, rcsum_tumor_matrix_, rcmax_tumor_matrix_,
+            rcsum_normal_matrix_, rcmax_normal_matrix_)
 
     tw = int(matrix_width)
     count_column = sum(tumor_matrix_[1:], 0)
@@ -445,6 +474,8 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
     st_tumor_matrix = np.delete(st_tumor_matrix_, cols_to_del, 1)
     lsc_tumor_matrix = np.delete(lsc_tumor_matrix_, cols_to_del, 1)
     rsc_tumor_matrix = np.delete(rsc_tumor_matrix_, cols_to_del, 1)
+    rcsum_tumor_matrix = np.delete(rcsum_tumor_matrix_, cols_to_del, 1)
+    rcmax_tumor_matrix = np.delete(rcmax_tumor_matrix_, cols_to_del, 1)
     tag_tumor_matrices = []
     for iii in range(len(tag_tumor_matrices_)):
         tag_tumor_matrices.append(
@@ -455,6 +486,8 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
     st_normal_matrix = np.delete(st_normal_matrix_, cols_to_del, 1)
     lsc_normal_matrix = np.delete(lsc_normal_matrix_, cols_to_del, 1)
     rsc_normal_matrix = np.delete(rsc_normal_matrix_, cols_to_del, 1)
+    rcsum_normal_matrix = np.delete(rcsum_normal_matrix_, cols_to_del, 1)
+    rcmax_normal_matrix = np.delete(rcmax_normal_matrix_, cols_to_del, 1)
     tag_normal_matrices = []
     for iii in range(len(tag_normal_matrices_)):
         tag_normal_matrices.append(
@@ -486,6 +519,12 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
         rsc_tumor_count_matrix = np.zeros((5, matrix_width))
         rsc_tumor_count_matrix[
             :, (matrix_width - ncols) // 2:(matrix_width - ncols) // 2 + ncols] = rsc_tumor_matrix
+        rcsum_tumor_count_matrix = np.zeros((5, matrix_width))
+        rcsum_tumor_count_matrix[
+            :, (matrix_width - ncols) // 2:(matrix_width - ncols) // 2 + ncols] = rcsum_tumor_matrix
+        rcmax_tumor_count_matrix = np.zeros((5, matrix_width))
+        rcmax_tumor_count_matrix[
+            :, (matrix_width - ncols) // 2:(matrix_width - ncols) // 2 + ncols] = rcmax_tumor_matrix
         tag_tumor_count_matrices = []
         for iii in range(len(tag_tumor_matrices)):
             tag_tumor_count_matrices.append(np.zeros((5, matrix_width)))
@@ -509,6 +548,12 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
         rsc_normal_count_matrix = np.zeros((5, matrix_width))
         rsc_normal_count_matrix[
             :, (matrix_width - ncols) // 2:(matrix_width - ncols) // 2 + ncols] = rsc_normal_matrix
+        rcsum_normal_count_matrix = np.zeros((5, matrix_width))
+        rcsum_normal_count_matrix[
+            :, (matrix_width - ncols) // 2:(matrix_width - ncols) // 2 + ncols] = rcsum_normal_matrix
+        rcmax_normal_count_matrix = np.zeros((5, matrix_width))
+        rcmax_normal_count_matrix[
+            :, (matrix_width - ncols) // 2:(matrix_width - ncols) // 2 + ncols] = rcmax_normal_matrix
         tag_normal_count_matrices = []
         for iii in range(len(tag_normal_matrices)):
             tag_normal_count_matrices.append(np.zeros((5, matrix_width)))
@@ -532,6 +577,10 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
             lsc_tumor_matrix, (5, matrix_width)).astype(int)
         rsc_tumor_count_matrix = imresize(
             rsc_tumor_matrix, (5, matrix_width)).astype(int)
+        rcsum_tumor_count_matrix = imresize(
+            rcsum_tumor_matrix, (5, matrix_width)).astype(int)
+        rcmax_tumor_count_matrix = imresize(
+            rcmax_tumor_matrix, (5, matrix_width)).astype(int)
         tag_tumor_count_matrices = []
         for iii in range(len(tag_tumor_matrices)):
             tag_tumor_count_matrices.append(
@@ -548,6 +597,10 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
             lsc_normal_matrix, (5, matrix_width)).astype(int)
         rsc_normal_count_matrix = imresize(
             rsc_normal_matrix, (5, matrix_width)).astype(int)
+        rcsum_normal_count_matrix = imresize(
+            rcsum_normal_matrix, (5, matrix_width)).astype(int)
+        rcmax_normal_count_matrix = imresize(
+            rcmax_normal_matrix, (5, matrix_width)).astype(int)
         tag_normal_count_matrices = []
         for iii in range(len(tag_normal_matrices)):
             tag_normal_count_matrices.append(
@@ -567,7 +620,8 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
             bq_tumor_count_matrix, mq_tumor_count_matrix, st_tumor_count_matrix, lsc_tumor_count_matrix, rsc_tumor_count_matrix,
             tag_tumor_count_matrices, normal_count_matrix, bq_normal_count_matrix, mq_normal_count_matrix,
             st_normal_count_matrix, lsc_normal_count_matrix, rsc_normal_count_matrix,
-            tag_normal_count_matrices, center, rlen, col_pos_map]
+            tag_normal_count_matrices, center, rlen, col_pos_map, rcsum_tumor_matrix, rcmax_tumor_matrix,
+            rcsum_normal_matrix, rcmax_normal_matrix]
 
 
 def prep_data_single_tabix(input_record):
@@ -591,7 +645,8 @@ def prep_data_single_tabix(input_record):
             tumor_matrix_, tumor_matrix, normal_matrix_, normal_matrix, ref_count_matrix, tumor_count_matrix, \
                 bq_tumor_count_matrix, mq_tumor_count_matrix, st_tumor_count_matrix, lsc_tumor_count_matrix, rsc_tumor_count_matrix, \
                 tag_tumor_count_matrices, normal_count_matrix, bq_normal_count_matrix, mq_normal_count_matrix, st_normal_count_matrix, \
-                lsc_normal_count_matrix, rsc_normal_count_matrix, tag_normal_count_matrices, center, rlen, col_pos_map = matrices_info
+                lsc_normal_count_matrix, rsc_normal_count_matrix, tag_normal_count_matrices, center, rlen, col_pos_map, \
+                rcsum_tumor_matrix, rcmax_tumor_matrix, rcsum_normal_matrix, rcmax_normal_matrix = matrices_info
         else:
             return []
 
@@ -614,6 +669,10 @@ def prep_data_single_tabix(input_record):
             candidate_mat[:, :, 13 + (iii * 2)] = tag_tumor_count_matrices[iii]
             candidate_mat[:, :, 13 + (iii * 2) +
                           1] = tag_normal_count_matrices[iii]
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 0] = rcsum_tumor_matrix
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 1] = rcsum_normal_matrix
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 2] = rcmax_tumor_matrix
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 3] = rcmax_normal_matrix
         tumor_cov = int(round(max(np.sum(tumor_count_matrix, 0))))
         normal_cov = int(round(max(np.sum(normal_count_matrix, 0))))
 
@@ -648,7 +707,14 @@ def prep_data_single_tabix(input_record):
                 max(np.max(tag_tumor_count_matrices[iii]), 100.0)) * 255
             candidate_mat[:, :, 13 + (iii * 2) + 1] = candidate_mat[:, :, 13 + (
                 iii * 2) + 1] / (max(np.max(tag_normal_count_matrices[iii]), 100.0)) * 255
-
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 0] = candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 0] / \
+            (np.max(rcsum_tumor_matrix) + 0.00001) * 255
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 1] = candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 1] / \
+            (np.max(rcsum_normal_matrix) + 0.00001) * 255
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 2] = candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 2] / \
+            (np.max(rcmax_tumor_matrix) + 0.00001) * 255
+        candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 3] = candidate_mat[:, :, 13 + 2 * len(tag_tumor_count_matrices) + 3] / \
+            (np.max(rcmax_normal_matrix) + 0.00001) * 255
         candidate_mat = np.maximum(0, np.minimum(
             candidate_mat, 255)).astype(np.uint8)
         tag = "{}.{}.{}.{}.{}.{}.{}.{}.{}".format(ch_order, pos, ref[0:55], alt[

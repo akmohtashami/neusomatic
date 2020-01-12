@@ -1,5 +1,5 @@
-#ifndef NEU_SOMATIC_MSA_UTIL 
-#define NEU_SOMATIC_MSA_UTIL 
+#ifndef NEU_SOMATIC_MSA_UTIL
+#define NEU_SOMATIC_MSA_UTIL
 
 #include <vector>
 #include <string>
@@ -18,12 +18,13 @@ class Col{
 
   public:
     static const int ALPHABET_SIZE = 6; // a, t, c, g, gap and missing_char
-    static const int TAG_SIZE = 5;
+    static const int TAG_SIZE = 6;
     explicit Col(size_t nbases): bases_(nbases), bquals_(nbases), base_freq_(ALPHABET_SIZE), //base_rids_(ALPHABET_SIZE),
                                  bqual_mean(ALPHABET_SIZE), mqual_mean(ALPHABET_SIZE), strand_mean(ALPHABET_SIZE), lsc_mean(ALPHABET_SIZE),
-                                 rsc_mean(ALPHABET_SIZE), tag_mean(ALPHABET_SIZE, std::vector<float>(TAG_SIZE)) {}
+                                 rsc_mean(ALPHABET_SIZE), tag_mean(ALPHABET_SIZE, std::vector<float>(TAG_SIZE)),
+                                 rcscore_sum(ALPHABET_SIZE), rcscore_max(ALPHABET_SIZE) {}
 
-    Col(): base_freq_(ALPHABET_SIZE), 
+    Col(): base_freq_(ALPHABET_SIZE),
            bqual_mean(ALPHABET_SIZE), mqual_mean(ALPHABET_SIZE), strand_mean(ALPHABET_SIZE), lsc_mean(ALPHABET_SIZE),
            rsc_mean(ALPHABET_SIZE), tag_mean(ALPHABET_SIZE, std::vector<float>(TAG_SIZE)) {}
 
@@ -34,6 +35,10 @@ class Col{
     std::vector<int> lsc_mean;
     std::vector<int> rsc_mean;
     std::vector<std::vector<float>> tag_mean;
+
+    std::vector<float> rcscore_sum;
+    std::vector<float> rcscore_max;
+
     decltype(auto) bases() const {return (bases_);}
     decltype(auto) bquals() const {return (bquals_);}
 
@@ -128,16 +133,16 @@ public:
     return (gapped_ref_str_);
   }
 
-  CondensedArray() : nrow_(0)  {} 
+  CondensedArray() : nrow_(0)  {}
 
   template<typename GInv>
   explicit CondensedArray(const std::vector<std::string>& msa, const int& total_cov, const GInv& ginv, const std::string& refgap) :
-      nrow_(msa.size()), 
-      cspace_(msa[0].size(), 
+      nrow_(msa.size()),
+      cspace_(msa[0].size(),
       Col(msa.size())),
       gapped_ref_str_ (refgap)
   {
-    _CheckInput(msa); 
+    _CheckInput(msa);
     for (size_t i = 0; i < msa.size(); ++i) {
       auto dna5qseq = _StringToDnaInt(msa[i]);
       this->row_push(dna5qseq.begin(), dna5qseq.end(), i);
@@ -146,13 +151,13 @@ public:
 
   template<typename MSA>
   explicit CondensedArray(const MSA& msa, const bool calculate_qual) :
-    nrow_(msa.size()), 
+    nrow_(msa.size()),
     cspace_(msa.ncol()),
     gapped_ref_str_(msa.gapped_ref_str())
-  { 
+  {
     for (size_t i = 0; i < nrow_; ++i) {
       auto const& r = msa.bam_records()[i];
-      auto const& cigar = r.GetCigar();        
+      auto const& cigar = r.GetCigar();
       const auto seq_qual = msa.GetGappedSeqAndQual(r);
       const auto& seq = seq_qual.first;
       // -1,+1 for INS at the begin or end of a read
@@ -173,7 +178,7 @@ public:
         const auto& qual = seq_qual.second;
         int strand = (int) !r.ReverseFlag();
         const auto clips = msa.GetClipping(r);
-        const auto tags = msa.GetTags(r, 5);
+        const auto tags = msa.GetTags(r, 6);
         if (clips.first != -1) cspace_[clips.first].lsc_mean[DnaCharToDnaCode(seq[clips.first])] ++;
         if (clips.second != -1) cspace_[clips.second].rsc_mean[DnaCharToDnaCode(seq[clips.second])] ++;
         for (int pp = s; pp <= e; ++pp) {
@@ -183,6 +188,10 @@ public:
           for (size_t ii = 0; ii < Col::TAG_SIZE; ++ii) {
             cspace_[pp].tag_mean[ DnaCharToDnaCode(seq[pp]) ][ii] += tags[ii];
           }
+
+          cspace_[pp].rcscore_sum[DnaCharToDnaCode(seq[pp])] += tags[5];
+          cspace_[pp].rcscore_max[DnaCharToDnaCode(seq[pp])] = std::max(cspace_[pp].rcscore_max[DnaCharToDnaCode(seq[pp])], tags[5]);
+
         }
       }
     }//end for
@@ -206,22 +215,22 @@ public:
 
 
   template<typename GInv>
-  explicit CondensedArray(const std::vector<std::string>& msa, const std::vector<std::string>& bqual, 
-                    const std::vector<int>& mqual, const std::vector<int>& strand, 
+  explicit CondensedArray(const std::vector<std::string>& msa, const std::vector<std::string>& bqual,
+                    const std::vector<int>& mqual, const std::vector<int>& strand,
                     const std::vector<int>& lsc, const std::vector<int>& rsc,
-                    const std::vector<std::vector<int>>& tags, 
-                    const int& total_cov, const GInv& ginv, const std::string& refgap): 
-            nrow_(msa.size()), 
+                    const std::vector<std::vector<int>>& tags,
+                    const int& total_cov, const GInv& ginv, const std::string& refgap):
+            nrow_(msa.size()),
             cspace_(msa[0].size(), Col(msa.size())),
             gapped_ref_str_(refgap),
             mquals_(nrow_),
-            strands_(nrow_), 
+            strands_(nrow_),
             lsc_(nrow_),
             rsc_(nrow_),
             tags_(nrow_, std::vector<int>(5))
   {
 
-    _CheckInput(msa); 
+    _CheckInput(msa);
 
     for (size_t i = 0; i < msa.size(); ++i) {
       auto dna5qseq = _StringToDnaInt(msa[i]);
@@ -274,7 +283,7 @@ public:
   void row_push_tag(std::vector<int> tags, const Idx rid) {
     for (size_t i = 0; i < tags.size(); ++i) {
       tags_[rid][i] = tags[i];
-    } 
+    }
   }
 
   template<class BaseItr>
@@ -297,7 +306,7 @@ public:
 
   void InitWithAlnMetaData() {
     for (size_t i = 0; i < ncol(); ++i) {
-      //column-wise 
+      //column-wise
       auto& col = cspace_[i];
 
       for (auto b = 0; b < Col::ALPHABET_SIZE; ++ b) {
@@ -364,7 +373,7 @@ private:
       throw std::runtime_error("empty msa");
     }
     for(auto const& row : msa) {
-      if (ncol == 0) ncol = row.length(); 
+      if (ncol == 0) ncol = row.length();
       else {
         if (ncol != row.length()) {
           throw std::runtime_error("input msa has unequal row lengthes");
@@ -394,10 +403,10 @@ private:
           dna5qseq[j] = 'G';
           break;
         case '-':
-          dna5qseq[j] = '-'; 
+          dna5qseq[j] = '-';
           break;
-        default:  
-          dna5qseq[j] = missing_chr_; 
+        default:
+          dna5qseq[j] = missing_chr_;
           break;
       }
     }
@@ -432,7 +441,7 @@ std::ostream& operator<<(std::ostream& os, const CondensedArray<Base>& ca) {
     }
     col_s += "\n";
     os << col_s;
-  } 
+  }
   return os;
 }
 
@@ -450,7 +459,7 @@ decltype(auto) CreateCondensedArray(const std::vector<std::string>& msa, const s
                               const std::vector<int>& lscs, const std::vector<int>& rscs,
                               const std::vector<std::vector<int>>& tag,
                               const int total_cov, const GInv& ginv, const RefGap& refgap) {
-  using CondensedArray = neusomatic::CondensedArray<int>; 
+  using CondensedArray = neusomatic::CondensedArray<int>;
   CondensedArray condensed_array(msa, bqual, mqual, strand, lscs, rscs, tag, total_cov, ginv, refgap);
   condensed_array.InitWithAlnMetaData();
   return condensed_array;
@@ -459,7 +468,7 @@ decltype(auto) CreateCondensedArray(const std::vector<std::string>& msa, const s
 
 std::string add_qual_col(auto  & data_array, bool is_int=false){
   auto sep = ":";
-  int order [5] = { 4, 0, 1, 2, 3 }; 
+  int order [5] = { 4, 0, 1, 2, 3 };
   std::string ret = "";
   for ( int n=0 ; n<5 ; ++n )
   {
@@ -477,7 +486,7 @@ std::string add_qual_col(auto  & data_array, bool is_int=false){
 
 std::string add_tag_col(auto  & data_array, bool is_int=false, int idx=0){
   auto sep = ":";
-  int order [5] = { 4, 0, 1, 2, 3 }; 
+  int order [5] = { 4, 0, 1, 2, 3 };
   std::string ret = "";
   for ( int n=0 ; n<5 ; ++n )
   {

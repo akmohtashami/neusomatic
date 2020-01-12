@@ -214,7 +214,7 @@ def train_neusomatic(candidates_tsv, validation_candidates_tsv, out_dir, checkpo
         torch.set_num_threads(num_threads)
 
     data_transform = matrix_transform((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    num_channels = 119 if ensemble else 26
+    num_channels = 119 if ensemble else 30
     net = NeuSomaticNet(num_channels)
     if use_cuda:
         logger.info("GPU training!")

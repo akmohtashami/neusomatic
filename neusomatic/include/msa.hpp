@@ -12,7 +12,7 @@ namespace neusomatic{
 template<typename Base, typename GInv>
 class GappedSeq {
   /*
-   * This data struct reprents an list of alternative Base 
+   * This data struct reprents an list of alternative Base
    * and Gap. The Base always starts first.
    */
   std::vector<Base> bases_;
@@ -22,7 +22,7 @@ class GappedSeq {
 
 public:
   GappedSeq(unsigned rlen): bases_(rlen), gaps_(rlen) {}
-  
+
   GappedSeq(const std::string& rseq, const GInv& ginv): bases_(rseq.begin(), rseq.end()), gaps_(rseq.length()), ginv_(ginv) {
     /*
      * Create a GappedSeq from a ref string (no gaps) and its corresponding genomic interval
@@ -33,7 +33,7 @@ public:
   }
   void SetGap(const size_t i, const int32_t len) {
     if (len > gaps_[i]) {
-      gaps_[i] = len; 
+      gaps_[i] = len;
     }
   }
 
@@ -79,7 +79,7 @@ inline std::ostream& operator<<(std::ostream& os, const GappedSeq<Base, GInv> gs
     if (i != 0) {
       os << std::string(gs.gaps()[i], '-');
     }
-    os << gs.bases()[i]; 
+    os << gs.bases()[i];
   }
   return os;
 }
@@ -87,23 +87,23 @@ inline std::ostream& operator<<(std::ostream& os, const GappedSeq<Base, GInv> gs
 template<typename Base, typename Variant>
 class ReadSeqGap {
   /*
-   * Represent a gapped read in the msa. 
-   * Alternate Base with gaps. The Base always comes first. 
+   * Represent a gapped read in the msa.
+   * Alternate Base with gaps. The Base always comes first.
    */
-  std::vector<Base> bases_; 
-  std::vector<std::string>  gapstrs_; // the first element in this vector is not in use. 
+  std::vector<Base> bases_;
+  std::vector<std::string>  gapstrs_; // the first element in this vector is not in use.
   std::string bases_str_;
   static const unsigned char missing_chr_ = '~';
   static const unsigned char gapchar_ = '-';
 public:
 
-  ReadSeqGap(const GappedSeq<char, typename Variant::TInv>& refgap, 
-             const std::vector<Variant>& vars, 
-             const int record_begin, 
+  ReadSeqGap(const GappedSeq<char, typename Variant::TInv>& refgap,
+             const std::vector<Variant>& vars,
+             const int record_begin,
              const int record_end) {
 
     // starts from the reference bases and then fill in mutated bases and gaps.
-    
+
     int msa_len=0;
     for (size_t i = 0; i < refgap.gaps().size(); ++ i) {
       const auto& gap = refgap.gaps()[i];
@@ -113,21 +113,21 @@ public:
     for (auto const& v : vars) {
 
       if (v.Type() == neusomatic::bio::VarType::SUB) {
-        if (!neusomatic::bio::IsOverlapped(v.ginv(), refgap.ginv())) continue; 
+        if (!neusomatic::bio::IsOverlapped(v.ginv(), refgap.ginv())) continue;
         int left = std::max(v.left(), refgap.left());
         int right = std::min(v.right(), refgap.right());
         for (size_t i = left; i < right; ++i) {
           bases_[i - refgap.left()] = v.allele()[i - v.left()];
         }
       } else if (v.Type() == neusomatic::bio::VarType::DEL) {
-        if (!neusomatic::bio::IsOverlapped(v.ginv(), refgap.ginv())) continue; 
+        if (!neusomatic::bio::IsOverlapped(v.ginv(), refgap.ginv())) continue;
         int left = std::max(v.left(), refgap.left());
         int right = std::min(v.right(), refgap.right());
         for (size_t i = left; i < right; ++i) {
           bases_[i - refgap.left()] = gapchar_;
         }
       } else if (v.Type() == neusomatic::bio::VarType::INS) {
-        if (!neusomatic::bio::IsContainedIn(v.ginv(), refgap.ginv())) continue; 
+        if (!neusomatic::bio::IsContainedIn(v.ginv(), refgap.ginv())) continue;
         for (size_t i = 0; i < v.allele().length(); ++i) {
           gapstrs_[v.left() - refgap.left()][i] = v.allele()[i];
         }
@@ -147,12 +147,12 @@ public:
     for (size_t i = 0; i < bases_.size(); ++i) {
       if (i != 0) {
         result += bases_[i] == missing_chr_ ? std::string(gapstrs_[i].size(), missing_chr_) : gapstrs_[i];
-      } 
+      }
       result += bases_[i];
     }
     if (result[0] == missing_chr_) {
       int i = 0;
-      while (result[++i] == missing_chr_); 
+      while (result[++i] == missing_chr_);
       for (; result[i] == gapchar_; ++i) result[i] = missing_chr_;
     }
     return result;
@@ -164,8 +164,8 @@ template<typename BamRecord, typename GInv>
 class MSABuilder {
   const std::vector<BamRecord>& bam_records_;
   //std::vector<size_t> rids_;
-  GappedSeq<char, GInv> ref_gaps_; 
-  std::vector<std::string>  gapstrs_; // the first element in this vector is not in use. 
+  GappedSeq<char, GInv> ref_gaps_;
+  std::vector<std::string>  gapstrs_; // the first element in this vector is not in use.
   int ncol_;
   std::string gapped_ref_str_;
   std::vector<int> gap_positions_;
@@ -173,8 +173,8 @@ class MSABuilder {
   static const unsigned char gapchar_ = '-';
 
 public:
-  MSABuilder() = delete; 
-  using ContigGaps = GappedSeq<char,GInv>; 
+  MSABuilder() = delete;
+  using ContigGaps = GappedSeq<char,GInv>;
 
   decltype(auto) bam_records() const {
     return (bam_records_);
@@ -201,7 +201,7 @@ public:
   }
 
   static void BuildRefGap(const std::vector<BamRecord>& bams, GappedSeq<char, GInv>& refgaps) {
-    // This loop setup the reference in gapped space. 
+    // This loop setup the reference in gapped space.
     for (auto const& r : bams) {
       auto vars = neusomatic::GetIndels<BamRecord, int>(r);
       for (auto const& v : vars) {
@@ -221,7 +221,7 @@ public:
     std::string msa_bases(ncol(), missing_chr_);
     std::string msa_bquals(ncol(), 33);
 
-    auto const& cigar = r.GetCigar(); 
+    auto const& cigar = r.GetCigar();
     auto const& seq = r.Sequence();
     auto const& qual = r.Qualities();
     int32_t ref_pos = r.Position();
@@ -241,13 +241,13 @@ public:
         const int l = std::max(ref_pos, ref_gaps_.left());
         const int r = std::min(int32_t(ref_pos + c->Length()), ref_gaps_.right());
         if (l < r) {
-          const int s = read_pos + l - ref_pos;       
+          const int s = read_pos + l - ref_pos;
           auto ss = seq.substr(s, l - r);
-          auto qq = qual.substr(s, l -r); 
-          
+          auto qq = qual.substr(s, l -r);
+
           for (int pp = l; pp < r; ++pp) {
             int gapp = GapPosition(pp - ref_gaps_.left());
-            msa_bases[gapp] = ss[pp - l]; 
+            msa_bases[gapp] = ss[pp - l];
             msa_bquals[gapp] = qq[pp - l];
             if (pp != r - 1) {
               for (auto gg = GapPosition(pp - ref_gaps_.left()) + 1 ; gg < GapPosition(pp - ref_gaps_.left() + 1); gg++){
@@ -266,7 +266,7 @@ public:
           const auto gapp = GapPosition(ref_pos - 1 - ref_gaps_.left());
           const auto gapp_end = GapPosition(ref_pos - ref_gaps_.left());
           auto s = seq.substr(read_pos, c->Length());
-          auto q = qual.substr(read_pos, c->Length()); 
+          auto q = qual.substr(read_pos, c->Length());
           int pp = 0;
           for (; pp < s.size(); ++pp) {
             msa_bases[gapp + pp + 1] = s[pp];
@@ -287,7 +287,7 @@ public:
           const unsigned char q = qual[read_pos - 1];
           for (int pp = l; pp < r; ++pp) {
             int gapp = GapPosition(pp - ref_gaps_.left());
-            msa_bases[gapp] = gapchar_; 
+            msa_bases[gapp] = gapchar_;
             msa_bquals[gapp] = q;
             for (auto gg = GapPosition(pp - ref_gaps_.left() - 1) + 1 ; gg < GapPosition(pp - ref_gaps_.left()); gg++){
               //msa_bases[gg] = gapchar_;
@@ -303,13 +303,13 @@ public:
         ref_pos += c->Length();
       }
     }
-    
+
     return std::make_pair(msa_bases, msa_bquals);
   }
-  
-  MSABuilder(const GInv& ginv, const std::vector<BamRecord>& bams, const std::string& refstr):  
+
+  MSABuilder(const GInv& ginv, const std::vector<BamRecord>& bams, const std::string& refstr):
     bam_records_(bams), ref_gaps_(refstr, ginv) {
-    BuildRefGap(bams, ref_gaps_);      
+    BuildRefGap(bams, ref_gaps_);
     ncol_ = ref_gaps_.length();
     gapped_ref_str_ = ref_gaps_.to_string();
     gapstrs_.resize(ref_gaps_.bases().size());
@@ -323,13 +323,13 @@ public:
     for (size_t i = 0; i < ref_gaps_.bases().size(); ++i) {
       if (i !=0) {
         c += ref_gaps_.gaps()[i];
-      } 
+      }
       gap_positions_[i] = c;
       c += 1;
     }
   }
 
-  std::vector<std::string> GetMSA() const { 
+  std::vector<std::string> GetMSA() const {
     std::vector<std::string> result(bam_records_.size());
     for (size_t i = 0; i < bam_records_.size(); ++i) {
       auto const& r = bam_records_[i];
@@ -338,11 +338,11 @@ public:
       result[i] = row.to_string();
     }
     return result;
-  } 
+  }
 
   auto GetClipping(const BamRecord& r) const {
     int lsc = -1, rsc = -1;
-    auto const& cigar = r.GetCigar();        
+    auto const& cigar = r.GetCigar();
     auto front_cigar=cigar.front().Type();
     auto end_cigar=cigar.back().Type();
     int pos_lsc = ((front_cigar=='H')||(front_cigar=='S')) ? r.Position() : -1;
@@ -353,7 +353,7 @@ public:
     }
     if (ref_gaps_.left() <= pos_rsc && pos_rsc<ref_gaps_.right()) {
       rsc = GapPosition(pos_rsc - ref_gaps_.left());
-    }   
+    }
     return std::make_pair(lsc, rsc);
   }
 
@@ -377,13 +377,21 @@ public:
     }
     tags[0]=std::max(std::min(100 - (int) std::rint(((float) nm)/(0.001+length)*100),100),0);
     tags[1]=std::max(std::min((int) std::rint(((float) as)/(0.001+length)*100),100),0);
-    tags[2]=std::max(std::min(100 - (int) std::rint(((float) xs)/(0.001+length)*100),100),0); 
+    tags[2]=std::max(std::min(100 - (int) std::rint(((float) xs)/(0.001+length)*100),100),0);
     tags[3]=r.ProperPair() ? 100 : 0; //bamrecord is mapped in proper pair
     tags[4]=(r.NumClip()>0) ? 100: 0; //bamrecord has soft/hard clips
+    if (tag_size > 5) {
+        double rcscore = 0;
+        uint8_t* p4 = bam_aux_get(r.shared_pointer().get(), "RC");
+        if (p4){
+            rcscore = bam_aux2f(p4);
+        }
+        tags[5] = rcscore;
+    }
     return tags;
   }
 
-  auto GetMSAwithQual() const { 
+  auto GetMSAwithQual() const {
 
 
     std::vector<std::string> result(bam_records_.size());
@@ -395,23 +403,23 @@ public:
     std::vector<std::vector<int>> tags(bam_records_.size(),std::vector<int>(5,0));
     for (size_t i = 0; i < bam_records_.size(); ++i) {
       auto const& r = bam_records_[i];
-      auto const& cigar = r.GetCigar();        
+      auto const& cigar = r.GetCigar();
       const auto seq_qual = GetGappedSeqAndQual(r);
       result[i] = seq_qual.first;
       bquals[i] = seq_qual.second;
-      
+
       const auto clips = GetClipping(r);
-      lscs[i] = clips.first; 
+      lscs[i] = clips.first;
       rscs[i] = clips.second;
       mquals[i] = r.MapQuality();
       strands[i] = (int) !r.ReverseFlag();
       const auto tag = GetTags(r, 5);
       tags[i] = tag;
     }
-    return std::tuple< std::vector<std::string>, std::vector<std::string>, std::vector<int>, 
+    return std::tuple< std::vector<std::string>, std::vector<std::string>, std::vector<int>,
                        std::vector<int>, std::vector<int>, std::vector<int>,
                        std::vector<std::vector<int>> > (result,bquals,mquals,strands,lscs,rscs,tags);
-  } 
+  }
 
 
 };
