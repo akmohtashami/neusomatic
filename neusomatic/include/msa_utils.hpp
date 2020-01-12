@@ -190,7 +190,8 @@ public:
           }
 
           cspace_[pp].rcscore_sum[DnaCharToDnaCode(seq[pp])] += tags[5];
-          cspace_[pp].rcscore_max[DnaCharToDnaCode(seq[pp])] = std::max(cspace_[pp].rcscore_max[DnaCharToDnaCode(seq[pp])], tags[5]);
+          if (tags[5] > cspace_[pp].rcscore_max[DnaCharToDnaCode(seq[pp])])
+            cspace_[pp].rcscore_max[DnaCharToDnaCode(seq[pp])] = tags[5];
 
         }
       }
