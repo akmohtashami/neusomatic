@@ -199,8 +199,8 @@ int main(int argc, char **argv) {
           << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 3)<<"\t" \
           << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 4)<<"\t" \
           << neusomatic::add_tag_col(cols_tag[i].tag_mean, false, 5)<<"\t" \
-          << neusomatic::add_qual_col(cols_lsc[i].rcscore_max)<<"\t" \
-          << neusomatic::add_qual_col(cols_rsc[i].rcscore_sum) \
+          << neusomatic::add_qual_col(cols[i].rcscore_max)<<"\t" \
+          << neusomatic::add_qual_col(cols[i].rcscore_sum) \
           << std::endl;
         }else{
           count_out_writer<<bam_header.IDtoName(ginv.contig())<<"\t"<<start_pos<<"\t" \

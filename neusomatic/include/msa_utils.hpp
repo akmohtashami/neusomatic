@@ -26,7 +26,7 @@ class Col{
 
     Col(): base_freq_(ALPHABET_SIZE),
            bqual_mean(ALPHABET_SIZE), mqual_mean(ALPHABET_SIZE), strand_mean(ALPHABET_SIZE), lsc_mean(ALPHABET_SIZE),
-           rsc_mean(ALPHABET_SIZE), tag_mean(ALPHABET_SIZE, std::vector<float>(TAG_SIZE)) {}
+           rsc_mean(ALPHABET_SIZE), tag_mean(ALPHABET_SIZE, std::vector<float>(TAG_SIZE)), rcscore_sum(ALPHABET_SIZE), rcscore_max(ALPHABET_SIZE) {}
 
     std::vector<int> base_freq_;
     std::vector<float> bqual_mean;
