@@ -653,7 +653,7 @@ def prep_data_single_tabix(input_record):
             return []
 
         candidate_mat = np.zeros((tumor_count_matrix.shape[0], tumor_count_matrix.shape[
-                                 1], 13 + (len(tag_tumor_count_matrices) * 2)))
+                                 1], 13 + (len(tag_tumor_count_matrices) * 2) + 4))
         candidate_mat[:, :, 0] = ref_count_matrix
         candidate_mat[:, :, 1] = tumor_count_matrix
         candidate_mat[:, :, 2] = normal_count_matrix
