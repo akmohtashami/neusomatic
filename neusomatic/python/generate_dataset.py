@@ -622,8 +622,8 @@ def prepare_info_matrices_tabix(ref_file, tumor_count_bed, normal_count_bed, rec
             bq_tumor_count_matrix, mq_tumor_count_matrix, st_tumor_count_matrix, lsc_tumor_count_matrix, rsc_tumor_count_matrix,
             tag_tumor_count_matrices, normal_count_matrix, bq_normal_count_matrix, mq_normal_count_matrix,
             st_normal_count_matrix, lsc_normal_count_matrix, rsc_normal_count_matrix,
-            tag_normal_count_matrices, center, rlen, col_pos_map, rcsum_tumor_matrix, rcmax_tumor_matrix,
-            rcsum_normal_matrix, rcmax_normal_matrix]
+            tag_normal_count_matrices, center, rlen, col_pos_map, rcsum_tumor_count_matrix, rcmax_tumor_count_matrix,
+            rcsum_normal_count_matrix, rcmax_normal_count_matrix]
 
 
 def prep_data_single_tabix(input_record):
