@@ -168,6 +168,8 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
     st_matrix_ = ((np.array(st_matrix_).transpose() / 100.0)) * matrix_
     lsc_matrix_ = np.array(lsc_matrix_).transpose()
     rsc_matrix_ = np.array(rsc_matrix_).transpose()
+    rcsum_matrix_ = np.array(rcsum_matrix_).tranpose()
+    rcmax_matrix_ = np.array(rcmax_matrix_).transpose()
     for iii in range(len(tag_matrices_)):
         tag_matrices_[iii] = np.array(tag_matrices_[iii]).transpose()
 
