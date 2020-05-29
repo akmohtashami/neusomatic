@@ -36,7 +36,7 @@ class matrix_transform():
 
 
 def extract_zlib(zlib_compressed_im):
-    return np.fromstring(zlib.decompress(zlib_compressed_im), dtype="uint8").reshape((5, 32, 23))
+    return np.fromstring(zlib.decompress(zlib_compressed_im), dtype="uint8").reshape((5, 32, -1))
 
 
 def candidate_loader_tsv(tsv, open_tsv, idx, i):
@@ -381,19 +381,20 @@ class NeuSomaticDataset(torch.utils.data.Dataset):
             normal_cov *= r_cov
 
         # add COV channel
-        matrix_ = np.zeros((matrix.shape[0], matrix.shape[1], 26 + len(anns)))
-        matrix_[:, :, 0:23] = matrix
+        orig_c_cnt = matrix.shape[2]
+        matrix_ = np.zeros((matrix.shape[0], matrix.shape[1], orig_c_cnt + 3 + len(anns)))
+        matrix_[:, :, 0:orig_c_cnt] = matrix
         if self.normalize_channels:
-            matrix_[:, :, 3:23:2] *= (matrix_[:, :, 1:2] / 255.0)
-            matrix_[:, :, 4:23:2] *= (matrix_[:, :, 2:3] / 255.0)
+            matrix_[:, :, 3:orig_c_cnt:2] *= (matrix_[:, :, 1:2] / 255.0)
+            matrix_[:, :, 4:orig_c_cnt:2] *= (matrix_[:, :, 2:3] / 255.0)
         matrix = matrix_
-        matrix[:, center, 23] = np.max(matrix[:, :, 0])
-        matrix[:, :, 24] = (min(tumor_cov, self.coverage_thr) /
+        matrix[:, center, orig_c_cnt] = np.max(matrix[:, :, 0])
+        matrix[:, :, orig_c_cnt + 1] = (min(tumor_cov, self.coverage_thr) /
                             float(self.coverage_thr)) * 255.0
-        matrix[:, :, 25] = (
+        matrix[:, :, orig_c_cnt + 2] = (
             min(normal_cov, self.coverage_thr) / float(self.coverage_thr)) * 255.0
         for i, a in enumerate(anns):
-            matrix[:, :, 26 + i] = a * 255.0
+            matrix[:, :, orig_c_cnt + 3 + i] = a * 255.0
 
         if self.is_test:
             orig_matrix_ = np.zeros(

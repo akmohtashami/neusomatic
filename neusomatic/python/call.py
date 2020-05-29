@@ -396,7 +396,7 @@ def call_neusomatic(candidates_tsv, ref_file, out_dir, checkpoint, num_threads,
     logger.info("-----------------Call Somatic Mutations--------------------")
 
     logger.info("PyTorch Version: {}".format(torch.__version__))
-    logger.info("Torchvision Version: {}".format(torchvision.__version__))
+    #logger.info("Torchvision Version: {}".format(torchvision.__version__))
     if not use_cuda:
         torch.set_num_threads(num_threads)
 
@@ -406,7 +406,7 @@ def call_neusomatic(candidates_tsv, ref_file, out_dir, checkpoint, num_threads,
 
     vartype_classes = ['DEL', 'INS', 'NONE', 'SNP']
     data_transform = matrix_transform((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    num_channels = 119 if ensemble else 30
+    num_channels = 119 if ensemble else 32
     net = NeuSomaticNet(num_channels)
     if use_cuda:
         logger.info("GPU calling!")

@@ -205,7 +205,7 @@ def train_neusomatic(candidates_tsv, validation_candidates_tsv, out_dir, checkpo
 
     logger.info("----------------Train NeuSomatic Network-------------------")
     logger.info("PyTorch Version: {}".format(torch.__version__))
-    logger.info("Torchvision Version: {}".format(torchvision.__version__))
+    #logger.info("Torchvision Version: {}".format(torchvision.__version__))
 
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
@@ -214,7 +214,7 @@ def train_neusomatic(candidates_tsv, validation_candidates_tsv, out_dir, checkpo
         torch.set_num_threads(num_threads)
 
     data_transform = matrix_transform((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    num_channels = 119 if ensemble else 30
+    num_channels = 119 if ensemble else 32
     net = NeuSomaticNet(num_channels)
     if use_cuda:
         logger.info("GPU training!")

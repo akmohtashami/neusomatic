@@ -155,6 +155,8 @@ def get_variant_matrix_tabix(ref_file, count_bed, record, matrix_base_pad, chrom
             rsc_matrix_.append([0, 0, 0, 0, 0])
             for iii in range(len(tag_matrices_)):
                 tag_matrices_[iii].append([0, 0, 0, 0, 0])
+            rcsum_matrix_.append([0, 0, 0, 0, 0])
+            rcmax_matrix_.append([0, 0, 0, 0, 0])
             ref_array.append(NUC_to_NUM_tabix[ref_base_])
             # if ref_base_ != "-" and i not in col_pos_map:
             if i not in col_pos_map:
@@ -229,7 +231,6 @@ def align_tumor_normal_matrices(record, tumor_matrix_, bq_tumor_matrix_, mq_tumo
         logger.error("record: {}".format(record))
         raise(RuntimeError(
             "current_col_T != current_col_N"))
-
     del tumor_col_pos_map[max(tumor_col_pos_map.keys())]
     del normal_col_pos_map[max(normal_col_pos_map.keys())]
     new_tumor_matrix_ = np.zeros((5, current_col_T - 1))
